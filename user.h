@@ -27,7 +27,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int clone(void(*fcn)(void*), void*, void*);
-int join(void**);
+int threadwait(void**);
 
 
 // ulib.c

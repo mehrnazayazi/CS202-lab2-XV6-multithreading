@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
+
 struct {
     struct spinlock lock;
     struct proc proc[NPROC];
@@ -224,40 +226,52 @@ fork(void)
 int
 clone(void)
 {
-    uint ustack[2];
-    void(*func)(void*);
-    void * arg;
-    void *stack;
-    if(argptr(0, (void*)&stack, sizeof(stack)< 0)) return -1;
-    if(argptr(1, (void*)&func, sizeof(func)<0)) return -1;
-    if(argptr(2, (void*)&arg, sizeof(arg)<0)) return -1;
-
     int i, pid;
     struct proc *np;
     struct proc *curproc = myproc();
 
-    if((uint)stack%PGSIZE!=0){
+
+    uint ustack[2];
+    void(*function)(void*);
+    void * arg;
+    void *size;
+
+    //Take the inputs of the clone function
+
+    if(argptr(0, (void*)&size, sizeof(size)< 0)) return -1;
+    if(argptr(1, (void*)&function, sizeof(function)<0)) return -1;
+    if(argptr(2, (void*)&arg, sizeof(arg)<0)) return -1;
+
+    //check if it fits the size
+    if((uint)size%PGSIZE!=0){
         return -1;
     }
-    if((curproc->sz - (uint)stack)<PGSIZE) return -1;
+    //check if we can allocate memory to stack
+    if((curproc->sz - (uint)size)<PGSIZE) return -1;
 
     //Allocate process.
     if((np= allocproc()) == 0) return -1;
 
-    //Copy peocess state.
+    //use the same page table
     np->pgdir = curproc->pgdir;
+    //Copy peocess state.
     np->sz = curproc->sz;
     np->parent = curproc;
     *np->tf = *curproc->tf;
-    np->tf->esp = (uint)stack+PGSIZE;
-    np->tstack = (uint)stack;
+    // Add memory to allocate to stack(begin)
+    np->tf->esp = (uint)size+PGSIZE;
+    np->threadstack = (uint)size;
     ustack[0] = 0xffffffff;
     ustack[1] = (uint)arg;
+    //make space for the above arguments
     np->tf->esp -= (2)*4;
     copyout(np->pgdir, np->tf->esp, ustack, (2)*4);
     //Clear %eax so that fork returns 0 in the child.
+    // Arg function - initialize
     np->tf->eax = 0;
-    np->tf->eip = (uint)func;
+    //instruction pointer so it starts to run the finction
+    np->tf->eip = (uint)function;
+    //so that we can pull our arguments
     np->tf->ebp = np->tf->esp;
 
     for(i=0; i<NOFILE; i++){
@@ -290,6 +304,12 @@ exit(void)
 
     if(curproc == initproc)
         panic("init exiting");
+    for(p = ptable.proc; p< &ptable.proc[NPROC]; p++) {
+        if (p->pgdir != curproc->pgdir) continue;
+        if (p->parent != curproc) continue;
+        sleep(curproc, &ptable.lock);
+    }
+
 
     // Close all open files.
     for(fd = 0; fd < NOFILE; fd++){
@@ -325,7 +345,7 @@ exit(void)
 }
 
 int
-join(void)
+threadwait(void)
 {
 
     struct proc* curproc = myproc();
@@ -350,7 +370,8 @@ join(void)
                 p->parent = 0;
                 p->name[0] = 0;
                 p->killed = 0;
-                *((int*)((int*)stack))=p->tstack;
+                *((int*)((int*)stack))=p->threadstack;
+//                kfree((char *)stack);
                 release(&ptable.lock);
                 return pid;
 
@@ -375,16 +396,41 @@ int
 wait(void)
 {
     struct proc *p;
-    int havekids, pid;
+    int havekids, pid, havethreads;
     struct proc *curproc = myproc();
+
+    void **size;
+    if(argptr(0, (void*)&size, sizeof(size) < 0)) return -1;
+    if((curproc->sz-(uint)size)< sizeof(void**)) return -1;
+
 
     acquire(&ptable.lock);
     for(;;){
         // Scan through table looking for exited children.
         havekids = 0;
+        havethreads = 0;
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
             if(p->parent != curproc)
                 continue;
+            //Lab2
+//            if(p->pgdir == curproc->pgdir) {
+//                havethreads = 1;
+//                if(p->state == ZOMBIE){
+//                    pid = p->pid;
+//                    p->state = UNUSED;
+//                    p->pid = 0;
+//                    p->parent = 0;
+//                    p->name[0] = 0;
+//                    p->killed = 0;
+//                    *((int*)((int*)size))=p->threadstack;
+//                    release(&ptable.lock);
+//                    return pid;
+//
+//                }
+//
+//            }
+
+
             havekids = 1;
             if(p->state == ZOMBIE){
                 // Found one.
@@ -403,7 +449,7 @@ wait(void)
         }
 
         // No point waiting if we don't have any children.
-        if(!havekids || curproc->killed){
+        if((!havekids && !havethreads) || curproc->killed){
             release(&ptable.lock);
             return -1;
         }

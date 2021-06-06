@@ -27,6 +27,7 @@ thread_create(void (*start_routine)(void*), void *arg)
     uint size = PGSIZE*2;
     lock_init(&lk);
     lock_acquire(&lk);
+    // assign the size
     void *stack=malloc(size);
     lock_release(&lk);
     if((uint)stack % PGSIZE){
@@ -40,7 +41,7 @@ int
 thread_join()
 {
     void *stack = malloc(sizeof(void*));
-    int result = join(&stack);
+    int result = threadwait(&stack);
     lock_t lk;
     lock_init(&lk);
     lock_acquire(&lk);

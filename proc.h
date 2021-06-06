@@ -50,7 +50,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  uint tstack;				   //thread stack addres
+  uint threadstack; //thread stack addres
   char *kstack;                // Bottom of kernel stack for this process
 
 

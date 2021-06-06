@@ -27,12 +27,12 @@ main(int argc, char* argv[])
         int thread_pid = thread_create(bee, &id[i]);
         printf(1, "pid = %d\n", thread_pid);
     }
-//    for(i=0; i<localbees; i++){
-//        int join_pid = thread_join();
-//        printf(1, "pid = %d\n", join_pid);
-//    }
+    for(i=0; i<localbees; i++){
+        int join_pid = thread_join();
+        printf(1, "pid = %d\n", join_pid);
+    }
     printf(1, "test passed\n");
-    wait();
+//    wait();
     exit();
 }
 

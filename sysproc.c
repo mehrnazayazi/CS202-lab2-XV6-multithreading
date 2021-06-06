@@ -98,7 +98,7 @@ sys_clone(void)
 }
 
 int
-sys_join(void){
-    return join();
+sys_threadwait(void){
+    return threadwait();
 }
 

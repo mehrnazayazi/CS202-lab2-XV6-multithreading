@@ -104,7 +104,7 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_clone(void);
-extern int sys_join(void);
+extern int sys_threadwait(void);
 
 
 
@@ -131,7 +131,7 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_clone]		sys_clone,
-[SYS_join]    sys_join,
+[SYS_threadwait]    sys_threadwait,
 };
 
 void
