@@ -377,7 +377,7 @@ threadwait(void)
 
             }
         }
-        //No point waiting if we don't have any threads.
+        // No point waiting if we don't have any children.
         if(!havethreads || curproc->killed){
             release(&ptable.lock);
             return -1;

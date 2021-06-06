@@ -45,8 +45,8 @@ void free(void*);
 int atoi(const char*);
 
 
-int thread_create(void (*start_routine)(void*), void* arg);
-int thread_join();
+int thread_create(void (*start_routine)(void*), void* arg, uint size);
+int thread_release();
 int lock_init(lock_t *lk);
 void lock_acquire(lock_t *lk);
 void lock_release(lock_t *lk);

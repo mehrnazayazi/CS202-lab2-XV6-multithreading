@@ -12,7 +12,7 @@ int lock_init(lock_t *lk){
     return 0;
 }
 
-void lock_acquire(lock_t* lk){
+void lock_acquire(lock_t * lk){
     while(xchg(&lk->flag, 1)!=0) ;
 }
 
@@ -21,10 +21,9 @@ void lock_release(lock_t *lk){
 }
 
 int
-thread_create(void (*start_routine)(void*), void *arg)
+thread_create(void (*start_routine)(void*), void *arg, uint size)
 {
     lock_t lk;
-    uint size = PGSIZE*2;
     lock_init(&lk);
     lock_acquire(&lk);
     // assign the size
@@ -38,7 +37,7 @@ thread_create(void (*start_routine)(void*), void *arg)
 }
 
 int
-thread_join()
+thread_release()
 {
     void *stack = malloc(sizeof(void*));
     int result = threadwait(&stack);

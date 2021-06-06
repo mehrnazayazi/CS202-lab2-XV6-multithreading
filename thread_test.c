@@ -7,50 +7,48 @@
 
 #define PGSIZE (4096)
 
-int ppid;
+int pid;
 int global = 1;
 lock_t lk;
-int totalpass = 60;
+int totalpass = 20;
 int passcount = 0;
-void bee(void * arg_ptr);
-int bees = 20;
-int
-main(int argc, char* argv[])
-{
-    ppid = getpid();
-    lock_init(&lk);
-    int i=0;
-    int id[bees];
-    int localbees = bees;
-    for(i=0; i<localbees; i++){
-        id[i] = i;
-        int thread_pid = thread_create(bee, &id[i]);
-        printf(1, "pid = %d\n", thread_pid);
-    }
-    for(i=0; i<localbees; i++){
-        int join_pid = thread_join();
-        printf(1, "pid = %d\n", join_pid);
-    }
-    printf(1, "test passed\n");
-//    wait();
-    exit();
-}
+int repeats = 5;
 
 void
-bee(void * arg_ptr){
+Frisbee(void * arg_ptr){
     int id = *(int*)arg_ptr;
-    printf(1, "child id:%d\n", id);
     while(passcount < totalpass){
-        //printf(1, "count less than total\n");
         lock_acquire(&lk);
-        //printf(1, "lock acquired\n");
-        if (passcount < totalpass && passcount%bees==id){
+        if (passcount < totalpass && passcount%repeats==id){
             printf(1, "Pass numer no: %d, Thread %d is passing the token to thread %d\n", ++passcount, id, id+1);
         }
-        //passcount++;
         lock_release(&lk);
-        //printf(1, "lock released\n");
     }
     exit() ;
 
 }
+
+
+int
+main(int argc, char* argv[])
+{
+    pid = getpid();
+    lock_init(&lk);
+    int i=0;
+    int id[repeats];
+    int localrepeats = repeats;
+    for(i=0; i<localrepeats; i++){
+        id[i] = i;
+        int thread_pid = thread_create(Frisbee, &id[i], PGSIZE*2);
+        printf(1, "pid of thread created = %d\n", thread_pid);
+
+    }
+    for(i=0; i<localrepeats; i++){
+        int join_pid = thread_release();
+        printf(1, "pid of thread released = %d\n", join_pid);
+    }
+    printf(1, "Simulation of Frisbee game has finished, %d rounds were played in total!\n", totalpass/repeats);
+    exit();
+
+}
+
